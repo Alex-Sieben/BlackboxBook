@@ -80,6 +80,7 @@ TABLE_SCALE_WORDS = {
 
 TABLE_SCALE_PATTERN = re.compile(r"(?<=\|\s)(\${1,4})(?=\s*\|)")
 CURRENCY_PATTERN = re.compile(r"(?<!\\)\$(?=\d)")
+LATEX_COMMAND_PATTERN = re.compile(r"[A-Za-z@]+")
 
 
 def parse_args() -> argparse.Namespace:
@@ -124,6 +125,15 @@ def parse_args() -> argparse.Namespace:
         "--page-height",
         help="Custom page height (for example: 8in). Use together with --page-width.",
     )
+    parser.add_argument(
+        "--wrap-code-blocks",
+        action="store_true",
+        help="Wrap long lines inside code blocks in the generated PDF.",
+    )
+    parser.add_argument(
+        "--code-font-size",
+        help="LaTeX font size command for code blocks, for example: footnotesize.",
+    )
     return parser.parse_args()
 
 
@@ -158,6 +168,44 @@ def resolve_page_geometry(args: argparse.Namespace) -> tuple[str | None, str]:
         return None, f"paperwidth={args.page_width},paperheight={args.page_height},margin={args.margin}"
 
     return "a4", f"margin={args.margin}"
+
+
+def normalize_latex_command(value: str, *, option_name: str) -> str:
+    command = value.lstrip("\\")
+    if not command or not LATEX_COMMAND_PATTERN.fullmatch(command):
+        raise SystemExit(f"Invalid {option_name} value: {value}")
+    return f"\\{command}"
+
+
+def create_header_include(temp_root: Path, args: argparse.Namespace) -> Path | None:
+    fv_options: list[str] = []
+
+    if args.wrap_code_blocks:
+        fv_options.extend(["breaklines=true", "breakanywhere=true"])
+
+    if args.code_font_size:
+        fv_options.append(
+            f"fontsize={normalize_latex_command(args.code_font_size, option_name='--code-font-size')}"
+        )
+
+    if not fv_options:
+        return None
+
+    header_path = temp_root / "pdf-header.tex"
+    header_path.write_text(
+        "\n".join(
+            [
+                r"\IfFileExists{fvextra.sty}{",
+                r"\usepackage{fvextra}",
+                rf"\fvset{{{','.join(fv_options)}}}",
+                r"}{",
+                r"}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return header_path
 
 
 def natural_sort_key(path: Path, root: Path) -> list[tuple[int, object]]:
@@ -261,6 +309,7 @@ def run_pandoc(
     toc: bool,
     papersize: str | None,
     geometry: str,
+    header_include: Path | None,
 ) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -268,6 +317,8 @@ def run_pandoc(
     command.extend(["--resource-path", os.pathsep.join([str(source_root), str(source_root.parent)])])
     if toc:
         command.append("--toc")
+    if header_include:
+        command.extend(["--include-in-header", str(header_include)])
     command.extend(
         [
             f"--pdf-engine={engine}",
@@ -305,6 +356,7 @@ def main() -> int:
     build_succeeded = False
 
     try:
+        header_include = create_header_include(temp_root, args)
         temp_source, temp_markdown_files = build_temp_tree(root, markdown_files, temp_root)
         print(f"Source root: {root}")
         print(f"Markdown files: {len(markdown_files)}")
@@ -314,6 +366,8 @@ def main() -> int:
         else:
             print(f"Page size: {args.page_width} x {args.page_height}")
         print(f"Geometry: {geometry}")
+        if header_include:
+            print(f"Header include: {header_include}")
         if fonts:
             for key in ("mainfont", "sansfont", "monofont"):
                 if key in fonts:
@@ -327,6 +381,7 @@ def main() -> int:
             toc=not args.no_toc,
             papersize=papersize,
             geometry=geometry,
+            header_include=header_include,
         )
         build_succeeded = True
     except subprocess.CalledProcessError as error:

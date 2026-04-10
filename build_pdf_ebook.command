@@ -21,7 +21,9 @@ python3 "$SCRIPT_DIR/scripts/build_book_pdf.py" \
   --output "$PDF_PATH" \
   --page-width 6in \
   --page-height 8in \
-  --margin 0.45in
+  --margin 0.45in \
+  --wrap-code-blocks \
+  --code-font-size footnotesize
 STATUS=$?
 
 printf "\n"

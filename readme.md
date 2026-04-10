@@ -72,7 +72,7 @@ python3 scripts/build_book_pdf.py --source book --output BlackboxBook.pdf
 
 `./build_pdf.command` собирает стандартный `BlackboxBook.pdf` в формате A4.
 
-`./build_pdf_ebook.command` собирает `BlackboxBook_ebook.pdf` в формате `6in x 8in` с уменьшенными полями для чтения на Kindle с 7" экраном.
+`./build_pdf_ebook.command` собирает `BlackboxBook_ebook.pdf` в формате `6in x 8in` с уменьшенными полями для чтения на Kindle с 7" экраном, автоматически переносит длинные строки в fenced code blocks и немного уменьшает шрифт в коде.
 
 ## О подходе книги
 
