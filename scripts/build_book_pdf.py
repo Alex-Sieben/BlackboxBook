@@ -111,6 +111,19 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Keep the temporary sanitized copy after a successful build.",
     )
+    parser.add_argument(
+        "--margin",
+        default="1in",
+        help="Page margin passed to LaTeX geometry. Default: %(default)s",
+    )
+    parser.add_argument(
+        "--page-width",
+        help="Custom page width (for example: 6in). Use together with --page-height.",
+    )
+    parser.add_argument(
+        "--page-height",
+        help="Custom page height (for example: 8in). Use together with --page-width.",
+    )
     return parser.parse_args()
 
 
@@ -132,6 +145,19 @@ def resolve_engine(requested: str) -> str:
 def ensure_pandoc() -> None:
     if not shutil.which("pandoc"):
         raise SystemExit("pandoc was not found in PATH.")
+
+
+def resolve_page_geometry(args: argparse.Namespace) -> tuple[str | None, str]:
+    has_width = bool(args.page_width)
+    has_height = bool(args.page_height)
+
+    if has_width != has_height:
+        raise SystemExit("Both --page-width and --page-height must be provided together.")
+
+    if has_width and has_height:
+        return None, f"paperwidth={args.page_width},paperheight={args.page_height},margin={args.margin}"
+
+    return "a4", f"margin={args.margin}"
 
 
 def natural_sort_key(path: Path, root: Path) -> list[tuple[int, object]]:
@@ -233,6 +259,8 @@ def run_pandoc(
     engine: str,
     fonts: dict[str, str],
     toc: bool,
+    papersize: str | None,
+    geometry: str,
 ) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -245,12 +273,13 @@ def run_pandoc(
             f"--pdf-engine={engine}",
             "-V",
             "documentclass=book",
-            "-V",
-            "papersize=a4",
-            "-V",
-            "geometry:margin=1in",
         ]
     )
+
+    if papersize:
+        command.extend(["-V", f"papersize={papersize}"])
+
+    command.extend(["-V", f"geometry:{geometry}"])
 
     for key in ("mainfont", "sansfont", "monofont"):
         value = fonts.get(key)
@@ -269,6 +298,7 @@ def main() -> int:
     output = Path(args.output).expanduser().resolve()
     engine = resolve_engine(args.engine)
     fonts = pick_fonts()
+    papersize, geometry = resolve_page_geometry(args)
     root, markdown_files = discover_markdown_files(source)
 
     temp_root = Path(tempfile.mkdtemp(prefix="book-pdf-"))
@@ -279,6 +309,11 @@ def main() -> int:
         print(f"Source root: {root}")
         print(f"Markdown files: {len(markdown_files)}")
         print(f"PDF engine: {engine}")
+        if papersize:
+            print(f"Paper size: {papersize}")
+        else:
+            print(f"Page size: {args.page_width} x {args.page_height}")
+        print(f"Geometry: {geometry}")
         if fonts:
             for key in ("mainfont", "sansfont", "monofont"):
                 if key in fonts:
@@ -290,6 +325,8 @@ def main() -> int:
             engine=engine,
             fonts=fonts,
             toc=not args.no_toc,
+            papersize=papersize,
+            geometry=geometry,
         )
         build_succeeded = True
     except subprocess.CalledProcessError as error:

@@ -50,7 +50,8 @@
 - `book/` — основной текст книги по главам;
 - `BlackboxBook.pdf` — готовая PDF-сборка;
 - `scripts/build_book_pdf.py` — скрипт локальной сборки PDF;
-- `build_pdf.command` — удобный запуск сборки на macOS;
+- `build_pdf.command` — удобный запуск стандартной PDF-сборки на macOS;
+- `build_pdf_ebook.command` — удобный запуск ebook/Kindle-сборки на macOS;
 - `.github/agents/` — агенты GitHub Copilot для редактуры, фактчекинга, консистентности и оркестрации;
 - `.github/instructions/` и `.github/prompts/` — инструкции и prompt-шаблоны для работы с книгой.
 
@@ -68,6 +69,10 @@ python3 scripts/build_book_pdf.py --source book --output BlackboxBook.pdf
 ```
 
 Понадобятся `pandoc` и один из PDF-движков: `tectonic`, `xelatex` или `lualatex`.
+
+`./build_pdf.command` собирает стандартный `BlackboxBook.pdf` в формате A4.
+
+`./build_pdf_ebook.command` собирает `BlackboxBook_ebook.pdf` в формате `6in x 8in` с уменьшенными полями для чтения на Kindle с 7" экраном.
 
 ## О подходе книги
 
