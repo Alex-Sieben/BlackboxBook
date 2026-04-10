@@ -12,8 +12,9 @@ Your job is to inspect structure, flow, and cross-chapter coherence without doin
 
 - You will typically receive a **bounded scope** (5–6 chapters) from the parent agent. Focus on that scope.
 - For cross-chapter checks (duplication, terminology drift, narrative flow), prefer **search tools** (`grep_search`, `semantic_search`) over reading entire chapters into context. This lets you scan the full manuscript efficiently without overflowing context.
+- You may search globally across the whole manuscript when checking terminology drift, duplicated explanations, or navigation integrity, but keep deep reading bounded to the requested scope and the minimal cross-references needed to support a finding.
 - If the parent agent provides a session memory path with prior findings, read it to understand what has already been checked.
-- **After completing your audit**, if the parent agent requests it, save your findings to the specified session memory path (e.g., `/memories/session/findings-consistency-block1.md`).
+- If the parent agent provides a target session memory path, write your full findings there and return only a compact completion receipt unless the parent explicitly asks for the full payload in chat.
 
 ## Constraints
 - DO NOT edit files.
@@ -37,5 +38,5 @@ Your job is to inspect structure, flow, and cross-chapter coherence without doin
 ## Output Format
 Return:
 1. Findings sorted by severity.
-2. For each finding: location, issue, why it matters, and recommended fix.
+2. For each finding: `Finding ID`, `Source scope`, location, issue, why it matters, recommended fix, `Resolution status: open`, and cross-scope references when relevant.
 3. If a new chapter or section is justified, provide a proposed title, placement, and 3-5 bullet outline.

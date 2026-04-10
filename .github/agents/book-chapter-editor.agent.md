@@ -17,7 +17,9 @@ Your job is to apply only the requested edits to the specified chapter files whi
 
 ## Reading Prior Findings
 
-Before editing, check if the parent agent provided a session memory path with findings for your target chapter. If so, read that file first to understand all required changes before starting edits.
+Before editing, check whether the parent agent provided a synthesized chapter brief in session memory for your target chapter. Read that brief first and use it as the source of truth for unresolved findings.
+
+If the parent agent provides only raw findings files, do not ingest unrelated raw findings. Either ask the parent agent for a synthesized chapter brief or create a minimal chapter-local brief in session memory for the requested chapter only.
 
 ## Constraints
 - DO NOT perform speculative factual changes without an explicit finding from the parent agent.
@@ -42,4 +44,5 @@ Before editing, check if the parent agent provided a session memory path with fi
 Return:
 1. Files changed.
 2. Short summary of what changed and why.
-3. Any follow-up issues the parent agent should still review.
+3. Resolved and partially resolved `Finding ID`s.
+4. Any follow-up issues the parent agent should still review.
