@@ -50,6 +50,8 @@ Your context window is ~200k tokens. A full-book review with 20+ subagent calls 
 - DO NOT assume every task needs a review pass; plan only what's needed.
 - DO NOT use the web when the repo cache is still fresh.
 - DO NOT force a whole-book plan for scoped requests.
+- DO NOT delegate to Chapter Editor without completing the required verification gate (see Mandatory Verification Gate). Every content change needs fact-checking.
+- DO NOT skip fact-checking for "quick" or "small" content changes — every factual change needs verification before editing.
 
 ## Request Classification (Critical)
 
@@ -64,6 +66,26 @@ Before planning any pass, classify the request as one of these modes:
 - `structural-request`: renumbering, rename, move, delete, or navigation repair.
 
 If the request is not a full-book review, do NOT force a whole-book plan. Stay scoped to the impacted chapters, adjacent navigation context, and the smallest set of topic caches needed for quality.
+
+---
+
+## Mandatory Verification Gate
+
+No modification to `book/` files may be delegated to Chapter Editor without prior verification through the appropriate subagents. This is a **hard gate**, not a guideline. A manuscript is a published artifact — every content change must be checked before it lands.
+
+| Mode | Required verification before editing |
+|---|---|
+| `full-book-review` | Fact Checker + Consistency Auditor + Findings Synthesizer |
+| `scoped-review` | Fact Checker (for claims in scope) + Consistency Auditor (if structure affected) + Findings Synthesizer |
+| `improvement-pass` | Fact Checker (for all changed/added claims) + Consistency Auditor (for affected scope) + Findings Synthesizer |
+| `topic-addition` | Fact Checker (for new claims) + Consistency Auditor (placement and overlap check) + Findings Synthesizer |
+| `new-chapter-authoring` | Fact Checker (for all claims in draft) + Consistency Auditor (placement, overlap, navigation) + Findings Synthesizer |
+| `follow-up-fix` | Fact Checker (for the specific claim being fixed) + Findings Synthesizer (minimal brief) |
+| `structural-request` | Consistency Auditor (navigation, cross-refs) — Structure Manager executes. No Fact Checker needed for pure structure |
+
+**Exception**: Pure formatting or navigation-only fixes (no content change) may skip verification. Mark them explicitly as `no-content-change` in the plan.
+
+If a user request implies skipping verification ("just fix this quickly", "add this sentence", "update this paragraph"), still route through the gate. Speed does not override correctness for a published manuscript. If the user insists on skipping, explain the verification requirement and ask for confirmation.
 
 ---
 
@@ -141,9 +163,10 @@ For a full-book review (26 chapters): ~6–8 fact-check passes, 4–5 consistenc
    - Each delegation includes: scope, cache paths to read, target memory path, receipt format, constraints.
 5. **After each receipt**: paste receipt into `review-state.md`. Apply cache deltas to `.github/review-cache/`.
 6. **After a batch**: delegate to Findings Synthesizer to create chapter briefs from raw findings.
-7. **Edit**: delegate to Chapter Editor one chapter at a time, passing only the brief path.
-8. **Structure**: delegate file ops to Structure Manager if needed.
-9. **Reconcile**: verify results, update cache, report residual risks.
+7. **Verification gate check**: before any edit delegation, confirm that the required verification passes (see Mandatory Verification Gate) are complete and a synthesized brief exists for the target chapter. If not — go back to step 4. Do not proceed to editing without this gate.
+8. **Edit**: delegate to Chapter Editor one chapter at a time, passing only the synthesized brief path. Never skip to this step without completing the verification gate.
+9. **Structure**: delegate file ops to Structure Manager if needed.
+10. **Reconcile**: verify results, update cache, report residual risks.
 
 ## Delegation Rules
 
@@ -151,7 +174,7 @@ For a full-book review (26 chapters): ~6–8 fact-check passes, 4–5 consistenc
 - **Consistency Auditor**: terminology, duplication, navigation, structure. Pass chapter scope + scope-log path.
 - **Web Researcher**: only for missing/stale topics. Pass topic cache path. Max 1 topic per call.
 - **Findings Synthesizer**: after raw findings accumulate. Pass raw findings paths + target brief paths.
-- **Chapter Editor**: only after brief exists. Pass brief path + chapter path. Require `validate_book_format.py`.
+- **Chapter Editor**: only after the verification gate is satisfied AND a synthesized brief exists. Pass brief path + chapter path. Require `validate_book_format.py`. If no brief exists, the edit is BLOCKED — delegate to Findings Synthesizer first. If no fact-check or consistency audit has been done for this scope, the edit is BLOCKED — run verification first.
 - **Structure Manager**: file ops, navigation, AGENTS.md sync. Require `validate_book_format.py`.
 
 ### Delegation Prompt Template

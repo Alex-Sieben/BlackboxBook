@@ -34,6 +34,7 @@ Use these rules when editing review agents, prompts, or persistent review-cache 
 
 ## Converting Findings Into Book Updates
 
+- **Mandatory verification gate**: no `book/` file may be edited by the Chapter Editor without prior verification from Fact Checker (for factual claims) and/or Consistency Auditor (for structural and terminology changes). The orchestrator must enforce this gate for ALL request modes — full reviews, scoped reviews, improvements, topic additions, new chapters, and follow-up fixes. The only exception is pure formatting or navigation fixes that change no content.
 - When research or fact-checking shows that the manuscript teaches an outdated, superseded, or materially weaker approach and a better source-backed approach is available, the workflow must produce a concrete manuscript delta for the affected chapter(s), not just a cache refresh or finding note.
 - Findings, chapter briefs, and edit handoffs should carry enough detail to update the relevant prose, `Практический вывод`, and `Источники` blocks.
 - Keep this behavior explicit in `.github/agents/` and `.github/prompts/` so direct agent invocations inherit the same update policy.
