@@ -126,7 +126,7 @@ Serving-метрики — это не абстрактные числа, а SLO
 
 $$\frac{\text{model\_size\_GB}}{\text{quant\_factor}} + \text{KV\_cache\_per\_request} \times \text{max\_concurrent} \leq \text{total\_GPU\_memory}$$
 
-**Пример**: Llama 70B в INT4 ≈ 35 GB весов. На A100 80 GB остаётся ~45 GB для KV-кэша. При 32K контексте один запрос потребляет ~2–4 GB KV-кэша → максимум 10–20 concurrent запросов на одном GPU. Для 100 concurrent → нужен кластер.
+**Пример**: Llama 70B в INT4 ≈ 35 GB весов. На A100 80 GB остаётся ~45 GB для KV-кэша. При 32K контексте один запрос потребляет ~5–10 GB KV-кэша (FP16) или ~2.5–5 GB при INT8 KV-cache quantization → максимум 4–9 (FP16) или 9–18 (INT8) concurrent запросов на одном GPU. Для 100 concurrent → нужен кластер (подробнее о фундаментальной механике KV-кэша — в Главе 5, §5.3).
 
 ### Parallelism
 
