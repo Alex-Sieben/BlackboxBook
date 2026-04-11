@@ -25,3 +25,4 @@ Use one row per reviewed scope so future runs know what was already checked and 
 
 | Scope ID | Scope kind | Files | Topic IDs | Last reviewed | Review mode | Cache result | Next action | Notes |
 |---|---|---|---|---|---|---|---|---|
+| fbr-2026-04-11 | full-book | book/00–25, readme.md | anthropic-claude-family, openai-gpt5-family, google-gemini-gemma, alibaba-qwen, deepseek-family, xai-grok, meta-llama, zhipu-glm, minimax-m27, mcp-ecosystem, slm-edge, hybrid-architectures | 2026-04-11 | full | new-topic (all 12 topics created) | Refresh fast-class topics by 2026-05-11 | First full-book review. 8 research passes, 5 fact-check passes, 4 synthesis briefs, 4 editor passes, 1 structure pass. ~64 actionable findings, ~56 resolved. Validation clean. |
