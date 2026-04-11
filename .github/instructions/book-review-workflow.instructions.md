@@ -11,6 +11,7 @@ Use these rules when editing review agents, prompts, or persistent review-cache 
 
 - Treat `.github/review-cache/` as the cross-run source of truth for prior research. Session memory is only the run-local scratchpad.
 - Before adding any new web-backed review logic, make the workflow inspect the repo cache first: `source-registry.md`, `scope-log.md`, and only the relevant topic files in `.github/review-cache/topics/`.
+- Factual workflows in this repository are not limited to model/vendor data. They also cover broader source-checkable claims across the manuscript: architecture explanations, protocol mechanics, safety guidance, eval methodology, serving/runtime details, observability practices, historical references, and other technical assertions.
 - Every factual workflow must choose one cache action per topic: `reuse_cache`, `refresh_watch_sources`, or `research_from_scratch`.
 - `reuse_cache` is the default when the topic file is still fresh and already covers the claims in scope.
 - `refresh_watch_sources` means re-checking only the canonical watch sources already logged for that topic. Do not broaden to new sources unless those watch sources changed or no longer cover the claim.

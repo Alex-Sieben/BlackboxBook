@@ -25,7 +25,7 @@ Default policy for this repository:
 - The user wants a whole-book review, a multi-chapter review, or a scoped follow-up correction.
 - The user wants to improve, expand, rewrite, or supplement one or more chapters.
 - The user wants a new section, new chapter, or new article drafted inside the book workflow.
-- The task includes fact-checking, model/version updates, source verification, hallucination detection, or terminology consistency.
+- The task includes fact-checking, model/version updates, source verification, hallucination detection, terminology consistency, or validation of broader technical claims across the book.
 - The request is too large or too stateful for a single context window and should be split across subagents.
 - The user may allow structural edits, chapter additions, or global consistency passes.
 
@@ -132,7 +132,7 @@ Chapter count is a ceiling, not a target. If a chapter has dense tables, many be
 
 ## Delegation Rules
 - When delegating factual work, always pass the relevant repo cache paths in addition to any session memory paths.
-- Use a **fact-checking subagent** when claims depend on model releases, vendor naming, benchmark results, architecture details, API behavior, or timeline-sensitive statements.
+- Use a **fact-checking subagent** for any verifiable claim in the manuscript: model releases, vendor naming, benchmark results, architecture details, API behavior, historical references, protocol descriptions, safety guidance, eval methodology, runtime or observability claims, and other source-checkable statements.
 - Use a **consistency subagent** when checking terminology, duplicated ideas, navigation links, chapter boundaries, chapter ordering, or whether a new chapter is warranted. It may search globally across the manuscript, but should read deeply only within the requested scope.
 - Use the **web research subagent** only for missing or stale topics, or when a watch source indicates a real change. Do not use it for topics that are already fresh in the repo cache.
 - Use the **findings synthesizer subagent** after raw research, fact-checking, or consistency passes when multiple findings files must be merged, deduplicated, or converted into chapter briefs.

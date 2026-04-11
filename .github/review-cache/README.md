@@ -2,7 +2,7 @@
 
 This directory is the cross-run cache for BlackboxBook review and source-backed manuscript workflows.
 
-Use it to avoid repeating the same web fetches on every review run or source-backed writing pass. Session memory still holds run-local raw findings and chapter briefs, but durable research state lives here.
+Use it to avoid repeating the same web fetches on every review run or source-backed writing pass. The cache is not only for model/vendor data; it also supports broader factual checks across the book. Session memory still holds run-local raw findings and chapter briefs, but durable research state lives here.
 
 ## Files
 
@@ -13,7 +13,7 @@ Use it to avoid repeating the same web fetches on every review run or source-bac
 ## Request Handling Algorithm
 
 1. Classify the request as one of: `full-book-review`, `scoped-review`, `improvement-pass`, `topic-addition`, `new-chapter-authoring`, `follow-up-fix`, `structural-request`.
-2. Map the request to the smallest relevant set of chapter files and `Topic ID`s.
+2. Map the request to the smallest relevant set of chapter files and `Topic ID`s, including non-model topics when the claims are about architecture, protocols, safety, evals, serving, observability, or historical context.
 3. Read only the relevant topic files plus matching rows in `source-registry.md` and `scope-log.md`.
 4. Choose one cache action per topic:
    - `reuse_cache`: the topic file is still fresh and already covers the claims in scope.
