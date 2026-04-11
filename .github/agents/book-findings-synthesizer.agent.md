@@ -27,8 +27,9 @@ Your job is to read persisted review findings from session memory, deduplicate a
 2. Deduplicate overlapping findings while preserving all contributing raw `Finding ID`s.
 3. Keep the original factual judgment unless two raw findings genuinely conflict; in that case, mark a conflict explicitly instead of deciding silently.
 4. Build chapter briefs that contain only unresolved or partially resolved items relevant to that chapter.
-5. Keep evidence compact inside chapter briefs: short evidence summary plus source paths or source URLs, not raw excerpts.
-6. Update or create a review-state manifest when requested, including counts of open, partially resolved, and resolved findings.
+5. Preserve any repo-cache `Topic ID`s and `Source ID`s that appear in the raw findings so the orchestrator can update `.github/review-cache/` without rereading raw research.
+6. Keep evidence compact inside chapter briefs: short evidence summary plus source paths or source URLs, not raw excerpts.
+7. Update or create a review-state manifest when requested, including counts of open, partially resolved, and resolved findings.
 
 ## Output Format
 Return:
@@ -36,4 +37,5 @@ Return:
 2. Chapters or topics synthesized.
 3. Duplicate groups merged, with retained canonical or related `Finding ID`s.
 4. Conflicts that still require adjudication.
-5. Chapters ready for editing.
+5. Repo-cache deltas the orchestrator should write into `.github/review-cache/`, if applicable.
+6. Chapters ready for editing.

@@ -11,7 +11,10 @@ Your job is to retrieve current, primary-source information about LLM vendors, m
 ## Scope and Context Management
 
 - You will receive a **narrow topic scope** (e.g., "current Gemini model family" or "GPT-5 release status") from the parent agent. Do NOT expand beyond it.
-- Web fetches are context-heavy. Limit yourself to **2–3 targeted web lookups per topic**. Prefer official docs/blogs over broad searches.
+- Read the relevant topic file in `.github/review-cache/topics/` and the matching rows in `.github/review-cache/source-registry.md` before any web fetch.
+- If the topic cache is still fresh and the parent did not request an explicit refresh, return `cache sufficient` and do NOT fetch the web.
+- Web fetches are context-heavy. Limit yourself to **2–3 targeted web lookups per topic**. Start with the logged watch sources first and prefer official docs/blogs over broad searches.
+- If a topic is stale, check the watch sources first. Add a new primary source only if the watch sources changed, were superseded, or no longer cover the claim.
 - Keep your output **concise**: return structured findings, not raw web page content. Summarize what you found and cite the source URL.
 - If the parent agent provides a target session memory path, write your full findings there and return only a compact completion receipt unless the parent explicitly asks for the full payload in chat. This lets other agents consume the research without the orchestrator relaying it.
 
@@ -19,6 +22,7 @@ Your job is to retrieve current, primary-source information about LLM vendors, m
 - DO NOT edit files.
 - DO NOT rewrite chapters.
 - DO NOT evaluate the whole manuscript for style or structure.
+- DO NOT refetch every historical source for a topic.
 - DO NOT rely on secondary summaries when a primary source is available.
 - DO NOT return vague summaries without source-backed takeaways.
 
@@ -36,9 +40,12 @@ Return a flat list of findings. For each finding include:
 - Topic
 - Source scope: exact topic requested
 - As of: `YYYY-MM-DD`
+- Cache action: `reuse_cache`, `refresh_watch_sources`, or `research_from_scratch`
+- Watch source check: what existing source IDs were checked first, or `none`
 - Current status
 - Why it matters for the manuscript
 - Primary sources
+- Suggested cache update: `none`, `refresh existing topic`, or the source/topic IDs the parent should add to `.github/review-cache/`
 - Unverified details: what still cannot be supported from primary sources, if anything
 - Recommended manuscript delta in Russian
 - Resolution status: open

@@ -13,12 +13,15 @@ Your job is to inspect structure, flow, and cross-chapter coherence without doin
 - You will typically receive a **bounded scope** (5–6 chapters) from the parent agent. Focus on that scope.
 - For cross-chapter checks (duplication, terminology drift, narrative flow), prefer **search tools** (`grep_search`, `semantic_search`) over reading entire chapters into context. This lets you scan the full manuscript efficiently without overflowing context.
 - You may search globally across the whole manuscript when checking terminology drift, duplicated explanations, or navigation integrity, but keep deep reading bounded to the requested scope and the minimal cross-references needed to support a finding.
+- If the parent agent provides relevant `.github/review-cache/scope-log.md` rows or topic cache paths, read them first so you do not reopen already-reviewed areas without cause.
+- For direct follow-up requests, audit only the impacted scope plus the minimal adjacent chapters or cross-references needed to verify flow, prerequisites, and navigation.
 - If the parent agent provides a session memory path with prior findings, read it to understand what has already been checked.
 - If the parent agent provides a target session memory path, write your full findings there and return only a compact completion receipt unless the parent explicitly asks for the full payload in chat.
 
 ## Constraints
 - DO NOT edit files.
 - DO NOT perform broad factual verification on the web.
+- DO NOT reopen previously resolved structural findings unless the scope changed, adjacent navigation changed, or the user explicitly asked for a re-audit.
 - DO NOT flag stylistic variation as a problem unless it harms clarity or consistency.
 - DO NOT propose new chapters casually; only do it when there is a clear missing conceptual block.
 
