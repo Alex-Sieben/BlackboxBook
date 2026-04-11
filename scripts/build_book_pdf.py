@@ -11,7 +11,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-ENGINE_CANDIDATES = ("tectonic", "xelatex", "lualatex")
+ENGINE_CANDIDATES = ("xelatex", "tectonic", "lualatex")
 
 FONT_CANDIDATES = {
     "mainfont": (
@@ -42,34 +42,13 @@ FONT_CANDIDATES = {
         "DejaVu Sans Mono",
         "Noto Sans Mono",
     ),
-}
-
-SYMBOL_REPLACEMENTS = {
-    "✅": "[+]",
-    "❌": "[-]",
-    "⚠️": "[!]",
-    "⚠": "[!]",
-    "🔄": "[R]",
-    "↺": "[R]",
-    "↻": "[R]",
-    "✓": "[+]",
-    "✗": "[-]",
-    "❗": "[!]",
-    "⭐": "[*]",
-    "▶": "->",
-    "→": "->",
-    "←": "<-",
-    "↔": "<->",
-    "Σ": "sum",
-    "∈": " in ",
-    "ℝ": "R",
-    " ": " ",
-    "₁": "_1",
-    "₂": "_2",
-    "₃": "_3",
-    "₄": "_4",
-    "₅": "_5",
-    "ₙ": "_n",
+    "symbolfont": (
+        "Menlo",
+        "Arial Unicode MS",
+        "Apple Symbols",
+        "STIX Two Math",
+        "STIXGeneral",
+    ),
 }
 
 TABLE_SCALE_WORDS = {
@@ -84,6 +63,7 @@ CURRENCY_PATTERN = re.compile(r"(?<!\\)\$(?=\d)")
 LATEX_COMMAND_PATTERN = re.compile(r"[A-Za-z@]+")
 FENCE_PATTERN = re.compile(r"^(`{3,}|~{3,})")
 TABLE_SEPARATOR_PATTERN = re.compile(r":?-{3,}:?")
+LONGTABLE_BODY_PATTERN = re.compile(r"(\\endlastfoot\s*)(.*?)(\\end\{longtable\})", re.S)
 
 
 @dataclass(frozen=True)
@@ -138,7 +118,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--engine",
         default="auto",
-        help="PDF engine: auto, tectonic, xelatex, or lualatex. Default: %(default)s",
+        help="PDF engine: auto or xelatex. Default: %(default)s",
     )
     parser.add_argument(
         "--no-toc",
@@ -183,6 +163,8 @@ def parse_args() -> argparse.Namespace:
 
 def resolve_engine(requested: str) -> str:
     if requested != "auto":
+        if requested != "xelatex":
+            raise SystemExit("This build requires xelatex for stable Unicode symbol rendering.")
         if shutil.which(requested):
             return requested
         raise SystemExit(f"PDF engine '{requested}' was not found in PATH.")
@@ -191,9 +173,7 @@ def resolve_engine(requested: str) -> str:
         if shutil.which(candidate):
             return candidate
 
-    raise SystemExit(
-        "No supported PDF engine found. Install one of: tectonic, xelatex, lualatex."
-    )
+    raise SystemExit("No supported PDF engine found. Install xelatex.")
 
 
 def ensure_pandoc() -> None:
@@ -225,6 +205,7 @@ def create_header_include(
     temp_root: Path,
     args: argparse.Namespace,
     layout_profile: LayoutProfile,
+    fonts: dict[str, str],
 ) -> Path | None:
     fv_options: list[str] = []
 
@@ -237,6 +218,25 @@ def create_header_include(
         )
 
     header_lines: list[str] = []
+
+    symbolfont = fonts.get("symbolfont") or fonts.get("monofont")
+    if symbolfont:
+        header_lines.extend(
+            [
+                r"\usepackage{etoolbox}",
+                r"\usepackage{ucharclasses}",
+                rf"\newfontfamily\BookSymbolFont{{{symbolfont}}}[Scale=MatchLowercase,ItalicFont={{{symbolfont}}},BoldFont={{{symbolfont}}},BoldItalicFont={{{symbolfont}}}]",
+                r"\setTransitionsForSymbols{\begingroup\BookSymbolFont}{\endgroup}",
+                r"\setTransitionsForGreek{\begingroup\BookSymbolFont}{\endgroup}",
+                r"\setTransitionsForMathematics{\begingroup\BookSymbolFont}{\endgroup}",
+                r"\setTransitionsFor{SuperscriptsAndSubscripts}{\begingroup\BookSymbolFont}{\endgroup}",
+                r"\AtBeginEnvironment{verbatim}{\XeTeXinterchartokenstate=0}",
+                r"\AfterEndEnvironment{verbatim}{\XeTeXinterchartokenstate=1}",
+                r"\AtBeginEnvironment{Verbatim}{\XeTeXinterchartokenstate=0}",
+                r"\AfterEndEnvironment{Verbatim}{\XeTeXinterchartokenstate=1}",
+                "",
+            ]
+        )
 
     if fv_options:
         header_lines.extend(
@@ -256,8 +256,8 @@ def create_header_include(
                 r"\IfFileExists{xurl.sty}{\usepackage{xurl}}{}",
                 r"\IfFileExists{microtype.sty}{\usepackage{microtype}}{}",
                 r"\IfFileExists{etoolbox.sty}{\usepackage{etoolbox}}{}",
-                r"\Urlmuskip=0mu plus 1mu",
                 r"\makeatletter",
+                r"\@ifundefined{Urlmuskip}{}{\Urlmuskip=0mu plus 1mu}",
                 r"\AtBeginDocument{\@ifundefined{LTleft}{}{\setlength{\LTleft}{0pt}\setlength{\LTright}{0pt}}}",
                 r"\makeatother",
             ]
@@ -489,11 +489,27 @@ def reflow_wide_tables(text: str, min_columns: int) -> str:
 
 
 def sanitize_markdown(text: str, layout_profile: LayoutProfile) -> str:
-    for old, new in SYMBOL_REPLACEMENTS.items():
-        text = text.replace(old, new)
-
     sanitized_lines: list[str] = []
+    inside_fence = False
+    fence_marker = ""
+
     for line in text.splitlines():
+        fence_match = FENCE_PATTERN.match(line.strip())
+        if fence_match:
+            marker = fence_match.group(1)[0]
+            if inside_fence and marker == fence_marker:
+                inside_fence = False
+                fence_marker = ""
+            elif not inside_fence:
+                inside_fence = True
+                fence_marker = marker
+            sanitized_lines.append(line)
+            continue
+
+        if inside_fence:
+            sanitized_lines.append(line)
+            continue
+
         if line.strip() != "$$":
             line = TABLE_SCALE_PATTERN.sub(lambda match: TABLE_SCALE_WORDS[match.group(1)], line)
             line = CURRENCY_PATTERN.sub(r"\\$", line)
@@ -528,6 +544,37 @@ def build_temp_tree(
     return temp_source, temp_markdown_files
 
 
+def add_longtable_row_rules(latex: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        body = match.group(2)
+        lines = body.splitlines(keepends=True)
+        row_indices = [index for index, line in enumerate(lines) if line.rstrip().endswith(r"\\")]
+
+        for index in row_indices[:-1]:
+            next_line = lines[index + 1] if index + 1 < len(lines) else ""
+            if r"\midrule" in next_line or r"\specialrule" in next_line:
+                continue
+            lines[index] = lines[index] + r"\midrule" + "\n"
+
+        return match.group(1) + "".join(lines) + match.group(3)
+
+    return LONGTABLE_BODY_PATTERN.sub(replace, latex)
+
+
+def compile_latex_document(tex_path: Path, workdir: Path, output: Path, engine: str) -> None:
+    for _ in range(2):
+        subprocess.run(
+            [engine, "-interaction=nonstopmode", "-halt-on-error", tex_path.name],
+            cwd=workdir,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    generated_pdf = tex_path.with_suffix(".pdf")
+    shutil.copy2(generated_pdf, output)
+
+
 def run_pandoc(
     markdown_files: list[Path],
     source_root: Path,
@@ -538,18 +585,21 @@ def run_pandoc(
     papersize: str | None,
     geometry: str,
     header_include: Path | None,
+    temp_root: Path,
 ) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
+    tex_path = temp_root / "book.tex"
+
     command = ["pandoc", *[str(path) for path in markdown_files]]
     command.extend(["--resource-path", os.pathsep.join([str(source_root), str(source_root.parent)])])
+    command.append("--standalone")
     if toc:
         command.append("--toc")
     if header_include:
         command.extend(["--include-in-header", str(header_include)])
     command.extend(
         [
-            f"--pdf-engine={engine}",
             "-V",
             "documentclass=book",
         ]
@@ -565,8 +615,11 @@ def run_pandoc(
         if value:
             command.extend(["-V", f"{key}={value}"])
 
-    command.extend(["-o", str(output)])
+    command.extend(["-t", "latex", "-o", str(tex_path)])
     subprocess.run(command, check=True)
+
+    tex_path.write_text(add_longtable_row_rules(tex_path.read_text(encoding="utf-8")), encoding="utf-8")
+    compile_latex_document(tex_path, temp_root, output, engine)
 
 
 def main() -> int:
@@ -578,6 +631,8 @@ def main() -> int:
     engine = resolve_engine(args.engine)
     layout_profile = LAYOUT_PROFILES[args.layout_profile]
     fonts = pick_fonts()
+    if "symbolfont" not in fonts:
+        raise SystemExit("No symbol-capable fallback font found. Install Menlo, Arial Unicode MS, Apple Symbols, or STIX Two Math.")
     papersize, geometry = resolve_page_geometry(args)
     root, markdown_files = discover_markdown_files(source)
 
@@ -585,7 +640,7 @@ def main() -> int:
     build_succeeded = False
 
     try:
-        header_include = create_header_include(temp_root, args, layout_profile)
+        header_include = create_header_include(temp_root, args, layout_profile, fonts)
         temp_source, temp_markdown_files = build_temp_tree(
             root,
             markdown_files,
@@ -604,7 +659,7 @@ def main() -> int:
         if header_include:
             print(f"Header include: {header_include}")
         if fonts:
-            for key in ("mainfont", "sansfont", "monofont"):
+            for key in ("mainfont", "sansfont", "monofont", "symbolfont"):
                 if key in fonts:
                     print(f"{key}: {fonts[key]}")
         run_pandoc(
@@ -617,10 +672,15 @@ def main() -> int:
             papersize=papersize,
             geometry=geometry,
             header_include=header_include,
+            temp_root=temp_root,
         )
         build_succeeded = True
     except subprocess.CalledProcessError as error:
         print(f"PDF build failed with exit code {error.returncode}.", file=sys.stderr)
+        if error.stdout:
+            print(error.stdout, file=sys.stderr)
+        if error.stderr:
+            print(error.stderr, file=sys.stderr)
         print(f"Temporary files kept at: {temp_root}", file=sys.stderr)
         return error.returncode
     finally:
