@@ -38,6 +38,10 @@ RECOMMENDED_END_BLOCKS = (
     "## Практический вывод",
 )
 
+END_BLOCK_PATTERNS = {
+    "## Практический вывод": re.compile(r"^##\s+(?:\d+(?:\.\d+)*\.\s+)?Практический вывод\s*$"),
+}
+
 
 @dataclass(frozen=True)
 class Issue:
@@ -97,6 +101,13 @@ def is_pipe_table_separator(line: str) -> bool:
     return bool(cells) and all(TABLE_SEPARATOR_CELL_PATTERN.fullmatch(cell.replace(" ", "")) for cell in cells)
 
 
+def find_block_position(lines: list[str], block: str) -> int | None:
+    pattern = END_BLOCK_PATTERNS.get(block)
+    if pattern is None:
+        return next((index + 1 for index, line in enumerate(lines) if line.strip() == block), None)
+    return next((index + 1 for index, line in enumerate(lines) if pattern.fullmatch(line.strip())), None)
+
+
 def validate_file(path: Path) -> list[Issue]:
     issues: list[Issue] = []
     text = path.read_text(encoding="utf-8")
@@ -121,7 +132,7 @@ def validate_file(path: Path) -> list[Issue]:
 
     found_positions: list[int] = []
     for block in REQUIRED_END_BLOCKS:
-        position = next((index + 1 for index, line in enumerate(lines) if line.strip() == block), None)
+        position = find_block_position(lines, block)
         if position is None:
             issues.append(Issue("error", rel_path, 1, "required-block", f"Missing required block `{block}`."))
             continue
@@ -134,7 +145,7 @@ def validate_file(path: Path) -> list[Issue]:
 
     recommended_positions: list[int] = []
     for block in RECOMMENDED_END_BLOCKS:
-        position = next((index + 1 for index, line in enumerate(lines) if line.strip() == block), None)
+        position = find_block_position(lines, block)
         if position is None:
             issues.append(
                 Issue(
